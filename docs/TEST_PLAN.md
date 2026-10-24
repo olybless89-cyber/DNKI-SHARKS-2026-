@@ -16,7 +16,7 @@ API tests run against a real PostgreSQL database recreated from migrations
 | `apps/api/test/concurrency.test.ts`   | atomic check-in (30 concurrent scans), at-most-once fulfilment (15 concurrent), out-of-order, mismatch, post-cancel payment, capacity race            |
 | `apps/api/test/security.test.ts`      | auth, sessions, CSRF, MFA, RBAC, enumeration, manual review, import, audit immutability                                                               |
 | `apps/api/test/accreditation.test.ts` | revoke, reissue, hash-only storage, refund, suspend/reinstate, standing, gate/device binding, identity check, override limits, re-entry, outbox retry |
-| `apps/api/test/delegates.test.ts` | DNKI event facts and choice lists, required delegate fields, option validation, photo upload/sniffing/access control, catering counts, export columns |
+| `apps/api/test/delegates.test.ts`     | DNKI event facts and choice lists, required delegate fields, option validation, photo upload/sniffing/access control, catering counts, export columns |
 | `apps/api/test/providers.test.ts`     | Paystack/Flutterwave signature + mapping, config safety, rate limiting                                                                                |
 
 Latest result: see `IMPLEMENTATION_STATUS.md` (78 tests passing on 24 Oct 2026).
@@ -47,5 +47,5 @@ Latest result: see `IMPLEMENTATION_STATUS.md` (78 tests passing on 24 Oct 2026).
 | ---------- | --------------------------------------------------------------- | ------------------------ | ------------------------- |
 | 2026-10-24 | Automated suites                                                | Local, PostgreSQL 16     | 69/69 passed              |
 | 2026-10-24 | Browser walkthrough (participant, admin, scanner manual lookup) | Local, headless Chromium | Passed, no console errors |
-| 2026-10-24 | Automated suites after DNKI details update | Local, PostgreSQL 16 | 78/78 passed |
-| 2026-10-24 | Browser walkthrough with new delegate form and photo | Local, headless Chromium | Passed, no console errors |
+| 2026-10-24 | Automated suites after DNKI details update                      | Local, PostgreSQL 16     | 78/78 passed              |
+| 2026-10-24 | Browser walkthrough with new delegate form and photo            | Local, headless Chromium | Passed, no console errors |

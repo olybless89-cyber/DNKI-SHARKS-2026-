@@ -6,15 +6,14 @@ what is tested, and what is still open. Nothing below is claimed unless it was r
 ## Update — 24 October 2026 (afternoon): DNKI Converge 2026 details applied
 
 Source: the live DNKI site dnkiconvergeportal.com (home and register pages).
-
 - **Branding:** official DNKI crest and SHARKS 2026 emblem (`apps/web/public/brand/`), DNKI red
   `#C8102E`, black `#0A0A0A`, the glowing red headline and the scrolling edition/theme/date strip.
 - **Event facts** (migration `0003_converge_2026_details.sql`, all admin-editable): the 18th DNKI Converge,
-  SHARKS 2026 International Converge, *Rebuilding the Brotherhood, Empowering Our Future*,
+  SHARKS 2026 International Converge, _Rebuilding the Brotherhood, Empowering Our Future_,
   10–13 December 2026, and the two accreditation contacts.
 - **Registration form now matches DNKI's:** Norish name, Norsical name, patrol (66 options),
   designation (6), Friday and Saturday meals (4 each), passport photo, hard-drugs declaration and the
-  conduct-rule agreement. Choice lists are managed under *Event settings → Registration choices*.
+  conduct-rule agreement. Choice lists are managed under _Event settings → Registration choices_.
 - **Passport photos** are shown on the pass, at the gate scanner (identity check) and to registration staff.
   Files are checked by signature, capped at 2 MB, resized in the browser, never exported.
 - **Catering:** the admin overview counts Friday/Saturday meal choices of confirmed delegates; the CSV
@@ -22,7 +21,6 @@ Source: the live DNKI site dnkiconvergeportal.com (home and register pages).
 - Tests: 78 passing (12 shared, 66 API, including 9 new delegate tests). Browser walkthrough re-run with the new form.
 
 **Decisions needed from DNKI arising from their current site**
-
 1. **Bank transfer + uploaded receipt.** Their current form takes a screenshot of a bank transfer as proof of
    payment. This platform deliberately does not accept screenshots as proof; payments are confirmed with the
    provider. If DNKI must keep bank transfers, the safe option is a "bank transfer" method where a finance
