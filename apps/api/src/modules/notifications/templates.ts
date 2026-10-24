@@ -1,7 +1,7 @@
 import { formatMoney } from "@dnki/shared";
 
 const SIGN_OFF =
-  "\n\n— DNKI SHARKS International Convergence Accreditation\nThis is an automated message. Do not share codes or passes with anyone.";
+  "\n\n— DNKI Converge 2026 · SHARKS 2026 Delegates Accreditation\nThis is an automated message. Do not share codes or passes with anyone.";
 
 export const templates = {
   emailVerification: (name: string, code: string) => ({

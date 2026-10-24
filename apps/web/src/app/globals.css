@@ -9,15 +9,16 @@
 @import "@fontsource/barlow-condensed/800.css";
 
 @theme {
-  --color-ink: #000000;
+  --color-ink: #0a0a0a;
   --color-paper: #ffffff;
-  --color-crimson: #c30a2b;
-  --color-crimson-deep: #8f0620;
+  --color-crimson: #c8102e;
+  --color-crimson-deep: #8e0a20;
   --color-fog: #eef0f2;
   --color-line: #d5d9de;
   --color-slate: #4a4f57;
   --color-admit: #0b7a3e;
   --color-warn: #9a5b00;
+  --color-signal: #ff1a1a;
 
   --font-sans: "Barlow", system-ui, sans-serif;
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -50,6 +51,29 @@ body {
   font-weight: 800;
   line-height: 0.92;
   letter-spacing: -0.01em;
+}
+
+/* DNKI Converge signature: glowing red headline on black */
+.glow {
+  color: var(--color-signal);
+  text-shadow: 0 0 18px rgb(255 26 26 / 0.6);
+}
+
+/* Ticker strip carrying the edition, theme and dates */
+.ticker {
+  display: flex;
+  width: max-content;
+  animation: ticker 40s linear infinite;
+}
+@keyframes ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker {
+    animation: none;
+  }
 }
 
 .measure {

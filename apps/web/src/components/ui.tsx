@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { useId } from "react";
@@ -9,14 +10,23 @@ export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
 }
 
-/** Typographic placeholder mark. Replace with the official DNKI logo when supplied. */
+/** Official DNKI crest (from dnkiconvergeportal.com) with the event wordmark. */
 export function Wordmark({ invert = false, compact = false }: { invert?: boolean; compact?: boolean }) {
   return (
-    <span className={cx("inline-flex items-center gap-2", invert ? "text-paper" : "text-ink")} title="DNKI placeholder wordmark">
-      <span aria-hidden className="inline-block h-6 w-1.5 bg-crimson" />
-      <span className="font-display text-xl font-800 leading-none tracking-wide" style={{ fontWeight: 800 }}>
-        DNKI{compact ? "" : " SHARKS"}
-      </span>
+    <span className={cx("inline-flex items-center gap-2.5", invert ? "text-paper" : "text-ink")}>
+      <Image
+        src="/brand/dnki-crest.webp"
+        alt="De Norsemen Kclub International crest"
+        width={40}
+        height={40}
+        className="size-10 rounded-full ring-2 ring-crimson"
+        priority
+      />
+      {!compact && (
+        <span className="font-display text-xl leading-none font-extrabold tracking-wide">
+          DNKI CONVERGE <span className="text-crimson">2026</span>
+        </span>
+      )}
     </span>
   );
 }

@@ -136,12 +136,49 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         );
         if (existing) throw Errors.conflict("ALREADY_REGISTERED", "You already have a registration for this event.");
 
+        // Every choice must be an active option of the right kind for this event.
+        const b = req.body;
+        const wanted: [string, string][] = [
+          [b.patrolId, "patrol"],
+          [b.designationId, "designation"],
+          [b.mealFridayId, "meal_friday"],
+          [b.mealSaturdayId, "meal_saturday"],
+        ];
+        const valid = await many<{ id: string; kind: string }>(
+          tx,
+          "select id, kind from registration_options where event_id = $1 and is_active and id = any($2::uuid[])",
+          [ev.id, wanted.map(([id]) => id)],
+        );
+        for (const [id, kind] of wanted) {
+          if (!valid.some((v) => v.id === id && v.kind === kind)) {
+            throw Errors.badRequest("INVALID_OPTION", `Choose a valid ${kind.replace("_", " ")}.`);
+          }
+        }
+
         const reference = generateReference("REG");
         const reg = await one<{ id: string; reference: string }>(
           tx,
-          `insert into registrations (reference, event_id, category_id, user_id, member_record_id, status, fee_minor, currency, terms_accepted_at)
-           values ($1, $2, $3, $4, $5, 'awaiting_payment', $6, $7, now()) returning id, reference`,
-          [reference, ev.id, cat.id, auth.user.id, member.id, cat.fee_minor, cat.currency],
+          `insert into registrations (reference, event_id, category_id, user_id, member_record_id, status, fee_minor, currency,
+                                      terms_accepted_at, norish_name, norsical_name, patrol_option_id, designation_option_id,
+                                      meal_friday_option_id, meal_saturday_option_id, hard_drugs_declaration, conduct_rules_accepted_at)
+           values ($1, $2, $3, $4, $5, 'awaiting_payment', $6, $7, now(), $8, $9, $10, $11, $12, $13, $14, now())
+           returning id, reference`,
+          [
+            reference,
+            ev.id,
+            cat.id,
+            auth.user.id,
+            member.id,
+            cat.fee_minor,
+            cat.currency,
+            b.norishName,
+            b.norsicalName,
+            b.patrolId,
+            b.designationId,
+            b.mealFridayId,
+            b.mealSaturdayId,
+            b.hardDrugs,
+          ],
         );
         if (!reg) throw new Error("insert failed");
         await tx.query(
@@ -215,11 +252,14 @@ export async function registrationRoutes(fastify: FastifyInstance) {
     const items = await many(
       db,
       `select r.id, r.reference, r.status, r.fee_minor, r.currency, r.created_at, r.updated_at,
+                r.norsical_name, r.hard_drugs_declaration, p.label as patrol, d.label as designation,
                 u.full_name, u.email, m.membership_number, m.chapter, c.name as category
            from registrations r
            join users u on u.id = r.user_id
            join member_records m on m.id = r.member_record_id
            join registration_categories c on c.id = r.category_id
+           left join registration_options p on p.id = r.patrol_option_id
+           left join registration_options d on d.id = r.designation_option_id
            ${w} order by r.created_at desc${page.sql}`,
       [...params, ...page.params],
     );
@@ -240,9 +280,16 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       const auth = requirePermission(req, "registration.read");
       const reg = await one(
         db,
-        `select r.*, u.full_name, u.email, m.membership_number, m.chapter, m.standing, c.name as category
+        `select r.*, u.full_name, u.email, u.phone, m.membership_number, m.chapter, m.standing, c.name as category,
+                p.label as patrol, d.label as designation, mf.label as meal_friday, ms.label as meal_saturday,
+                exists (select 1 from participant_photos ph where ph.user_id = r.user_id) as has_photo
            from registrations r join users u on u.id = r.user_id join member_records m on m.id = r.member_record_id
-           join registration_categories c on c.id = r.category_id where r.id = $1`,
+           join registration_categories c on c.id = r.category_id
+           left join registration_options p on p.id = r.patrol_option_id
+           left join registration_options d on d.id = r.designation_option_id
+           left join registration_options mf on mf.id = r.meal_friday_option_id
+           left join registration_options ms on ms.id = r.meal_saturday_option_id
+          where r.id = $1`,
         [req.params.id],
       );
       if (!reg) throw Errors.notFound("Registration");

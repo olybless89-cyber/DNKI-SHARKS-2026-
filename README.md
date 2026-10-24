@@ -1,8 +1,8 @@
 # DNKI SHARKS Digital Accreditation Platform
 
-Registration, payment verification, accreditation and venue access control for the
-**SHARKS International Convergence** of De Norsemen Kclub International (DNKI).
-Theme: _Rebuilding the Brotherhood_.
+Delegates registration, payment verification, accreditation and venue access control for the
+**18th DNKI Converge — SHARKS 2026 International Converge** of De Norsemen Kclub International (DNKI),
+Thursday 10 – Sunday 13 December 2026. Theme: _Rebuilding the Brotherhood, Empowering Our Future_.
 
 > **Status:** Phases 1–4 (foundation, membership & registration, payments, accreditation &
 > gate scanning) are implemented and tested against a real PostgreSQL database with

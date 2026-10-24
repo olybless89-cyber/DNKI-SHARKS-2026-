@@ -14,6 +14,7 @@ import {
   member,
   participant,
   passToken,
+  regBody,
   registerAndPay,
   setupEvent,
   staff,
@@ -129,7 +130,7 @@ describe("denials", () => {
     expect(r.statusCode).toBe(200); // generic response
     const sent = await many(env.ctx.db, "select 1 from notifications where recipient = $1", [m.email]);
     expect(sent).toHaveLength(0); // but no code is sent
-    const reg = await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true });
+    const reg = await p.c.post("/registrations", regBody(ev.categoryId));
     expect(reg.statusCode).toBe(403);
   });
 
@@ -149,7 +150,7 @@ describe("denials", () => {
   it("the browser return URL alone never marks a payment successful", async () => {
     const p = await participant(env);
     await verifyMembership(env, p.c, await member(env));
-    const reg = (await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true })).json();
+    const reg = (await p.c.post("/registrations", regBody(ev.categoryId))).json();
     const { reference } = (await p.c.post(`/registrations/${reg.id}/checkout`)).json();
     const s = (await p.c.get(`/payments/orders/${reference}/status`)).json();
     expect(s.status).toBe("pending");
@@ -175,8 +176,8 @@ describe("denials", () => {
   it("a duplicate registration for the same member and event is refused", async () => {
     const p = await participant(env);
     await verifyMembership(env, p.c, await member(env));
-    expect((await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true })).statusCode).toBe(201);
-    const again = await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true });
+    expect((await p.c.post("/registrations", regBody(ev.categoryId))).statusCode).toBe(201);
+    const again = await p.c.post("/registrations", regBody(ev.categoryId));
     expect(again.statusCode).toBe(409);
     expect(again.json().error.code).toBe("ALREADY_REGISTERED");
   });
@@ -184,7 +185,7 @@ describe("denials", () => {
   it("registration requires accepting the terms", async () => {
     const p = await participant(env);
     await verifyMembership(env, p.c, await member(env));
-    const r = await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: false });
+    const r = await p.c.post("/registrations", regBody(ev.categoryId, { acceptTerms: false }));
     expect(r.statusCode).toBe(400);
   });
 });

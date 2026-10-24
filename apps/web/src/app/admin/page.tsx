@@ -7,6 +7,7 @@ import { fmtDate, useApi } from "@/lib/api";
 
 type Overview = {
   metrics: Record<string, number>;
+  catering: { kind: "meal_friday" | "meal_saturday"; label: string; delegates: number }[];
   attendanceByGate: { name: string; admitted: number }[];
   environment: {
     demoMode: boolean;
@@ -109,6 +110,27 @@ export default function AdminHome() {
             </dl>
           </section>
         ))}
+        <section>
+          <h2 className="font-display text-2xl font-semibold">Catering</h2>
+          <p className="text-sm text-slate">Meal choices of delegates whose payment is confirmed.</p>
+          <div className="mt-3 grid gap-6 md:grid-cols-2">
+            {(["meal_friday", "meal_saturday"] as const).map((day) => (
+              <div key={day}>
+                <h3 className="font-semibold">{day === "meal_friday" ? "Friday arrival" : "Saturday arrival"}</h3>
+                <ul className="mt-2 divide-y divide-line border-y-2 border-ink">
+                  {data.catering
+                    .filter((c) => c.kind === day)
+                    .map((c) => (
+                      <li key={c.label} className="flex justify-between gap-3 py-2">
+                        <span>{c.label}</span>
+                        <span className="font-display text-xl font-bold">{c.delegates}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
         <section>
           <h2 className="font-display text-2xl font-semibold">Admissions by gate</h2>
           {data.attendanceByGate.length ? (

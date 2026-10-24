@@ -9,17 +9,25 @@ export function PassBadge({
   category,
   accreditationId,
   chapter,
+  norsicalName,
+  designation,
+  photoUrl,
   qr,
   sample = false,
   status,
+  tagline = "Rebuilding the Brotherhood, Empowering Our Future",
 }: {
   name: string;
   category: string;
   accreditationId: string;
-  chapter?: string;
+  chapter?: string | null;
+  norsicalName?: string | null;
+  designation?: string | null;
+  photoUrl?: string | null;
   qr: ReactNode;
   sample?: boolean;
   status?: string;
+  tagline?: string;
 }) {
   const inactive = status && status !== "active";
   return (
@@ -27,20 +35,55 @@ export function PassBadge({
       className="print-badge relative mx-auto w-full max-w-[340px] overflow-hidden rounded-lg bg-paper text-ink shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)]"
       aria-label={sample ? "Sample accreditation pass" : `Accreditation pass for ${name}`}
     >
-      <div className="lanyard flex h-16 items-start justify-center pt-3">
+      <div className="lanyard flex h-14 items-start justify-center pt-3">
         <span aria-hidden className="h-5 w-16 rounded-full bg-paper/90 shadow-inner" />
       </div>
-      <div className="bg-ink px-6 pt-5 pb-4 text-paper">
-        <p className="display text-[2.75rem]">SHARKS</p>
-        <p className="font-display text-lg font-medium tracking-wide text-paper/80">International Convergence</p>
+      <div className="flex items-center gap-3 bg-ink px-5 py-4 text-paper">
+        {/* biome-ignore lint/performance/noImgElement: static brand asset, also used in print */}
+        <img
+          src="/brand/dnki-crest.webp"
+          alt=""
+          width={52}
+          height={52}
+          className="size-13 shrink-0 rounded-full ring-2 ring-crimson"
+        />
+        <div>
+          <p className="display glow text-[2.4rem] leading-none">SHARKS 2026</p>
+          <p className="font-display text-base font-medium tracking-wide text-paper/80">International Converge · Delegate</p>
+        </div>
       </div>
       <div className="relative px-6 pt-5 pb-6">
-        <p className="display text-3xl break-words">{name}</p>
-        {chapter ? <p className="text-slate">{chapter}</p> : null}
-        <p className="mt-3 inline-block bg-crimson px-2 py-0.5 font-display text-lg font-semibold text-paper">{category}</p>
+        <div className="flex items-start gap-4">
+          {photoUrl ? (
+            // biome-ignore lint/performance/noImgElement: authenticated photo endpoint, not optimisable
+            <img
+              src={photoUrl}
+              alt={`Passport photo of ${name}`}
+              className="h-24 w-20 shrink-0 rounded-sm border-2 border-ink object-cover"
+            />
+          ) : sample ? (
+            <span
+              aria-hidden
+              className="flex h-24 w-20 shrink-0 items-center justify-center rounded-sm border-2 border-dashed border-line text-xs text-slate"
+            >
+              Photo
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <p className="display text-3xl break-words">{name}</p>
+            {norsicalName ? <p className="font-display text-xl font-semibold text-crimson">“{norsicalName}”</p> : null}
+            {chapter ? <p className="text-slate">{chapter}</p> : null}
+          </div>
+        </div>
+        <p className="mt-3 flex flex-wrap gap-2">
+          <span className="inline-block bg-crimson px-2 py-0.5 font-display text-lg font-semibold text-paper">{category}</span>
+          {designation ? (
+            <span className="inline-block bg-ink px-2 py-0.5 font-display text-lg font-semibold text-paper">{designation}</span>
+          ) : null}
+        </p>
         <div className={inactive ? "mt-5 opacity-20" : "mt-5"}>{qr}</div>
         <p className="mt-3 text-center font-display text-xl font-semibold tracking-[0.08em]">{accreditationId}</p>
-        <p className="mt-1 text-center text-xs text-slate">Rebuilding the Brotherhood</p>
+        <p className="mt-1 text-center text-xs text-slate">{tagline}</p>
         {inactive ? (
           <p className="absolute inset-x-6 top-1/2 -translate-y-1/2 rotate-[-8deg] border-4 border-crimson bg-paper/90 py-2 text-center display text-3xl text-crimson">
             {status?.toUpperCase()} — NOT VALID

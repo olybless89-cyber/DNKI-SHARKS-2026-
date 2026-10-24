@@ -28,6 +28,7 @@ import { MockPaymentProvider } from "./modules/payments/mock";
 import { PaystackProvider } from "./modules/payments/paystack";
 import type { PaymentProvider } from "./modules/payments/provider";
 import { paymentRoutes } from "./modules/payments/routes";
+import { photoRoutes } from "./modules/photos/routes";
 import { registrationRoutes } from "./modules/registration/routes";
 import { scanningRoutes } from "./modules/scanning/routes";
 import { authHooks } from "./plugins/auth";
@@ -188,6 +189,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
       await v1.register(paymentRoutes);
       await v1.register(accreditationRoutes);
       await v1.register(scanningRoutes);
+      await v1.register(photoRoutes);
       await v1.register(adminRoutes);
     },
     { prefix: "/api/v1" },

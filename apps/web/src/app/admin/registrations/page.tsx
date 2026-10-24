@@ -19,6 +19,10 @@ type Row = {
   membership_number: string;
   chapter: string;
   category: string;
+  norsical_name: string | null;
+  patrol: string | null;
+  designation: string | null;
+  hard_drugs_declaration: "yes" | "no" | null;
 };
 
 export default function Registrations() {
@@ -48,17 +52,27 @@ export default function Registrations() {
       <ErrorNote error={list.error} />
       {list.loading && !list.data && <Loading />}
       {list.data && (
-        <Table head={["Reference", "Member", "Category", "Fee", "Status", "Created", ""]}>
+        <Table head={["Reference", "Delegate", "Patrol", "Category", "Fee", "Status", "Created", ""]}>
           {list.data.items.map((r) => (
             <tr key={r.id}>
               <td className="font-semibold">{r.reference}</td>
               <td>
                 {r.full_name}
+                {r.norsical_name && <span className="block text-sm font-semibold">“{r.norsical_name}”</span>}
                 <span className="block text-sm text-slate">
                   {r.membership_number} · {r.chapter}
                 </span>
               </td>
-              <td>{r.category}</td>
+              <td>
+                {r.patrol ?? "—"}
+                {r.designation && <span className="block text-sm text-slate">{r.designation}</span>}
+              </td>
+              <td>
+                {r.category}
+                {r.hard_drugs_declaration === "yes" && (
+                  <span className="mt-1 block w-fit bg-[#fdf6e8] px-1.5 text-xs font-semibold text-warn">Declared drug use</span>
+                )}
+              </td>
               <td>{formatMoney(r.fee_minor, r.currency)}</td>
               <td>
                 <StatusPill status={r.status} />
@@ -88,6 +102,16 @@ type DetailData = {
     membership_number: string;
     standing: string;
     category: string;
+    phone: string | null;
+    norish_name: string | null;
+    norsical_name: string | null;
+    patrol: string | null;
+    designation: string | null;
+    meal_friday: string | null;
+    meal_saturday: string | null;
+    hard_drugs_declaration: "yes" | "no" | null;
+    conduct_rules_accepted_at: string | null;
+    has_photo: boolean;
   };
   history: {
     from_status: string | null;
@@ -130,8 +154,43 @@ function Detail({ id, canManage, onChange }: { id: string; canManage: boolean; o
         {r.reference} — {r.full_name}
       </h2>
       <p className="text-slate">
-        {r.email} · member {r.membership_number} (<StatusPill status={r.standing} />)
+        {r.email}
+        {r.phone ? ` · ${r.phone}` : ""} · member {r.membership_number} (<StatusPill status={r.standing} />)
       </p>
+      <div className="mt-4 flex flex-wrap gap-6">
+        {r.has_photo ? (
+          // biome-ignore lint/performance/noImgElement: authenticated staff photo endpoint
+          <img
+            src={`/api/v1/staff/photos/registration/${id}`}
+            alt={`Photo of ${r.full_name}`}
+            className="h-36 w-28 rounded-sm border-2 border-ink object-cover"
+          />
+        ) : (
+          <span className="flex h-36 w-28 items-center justify-center border-2 border-dashed border-line text-center text-xs text-slate">
+            No photo
+          </span>
+        )}
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-[0.95rem]">
+          <dt className="text-slate">Norish name</dt>
+          <dd>{r.norish_name ?? "—"}</dd>
+          <dt className="text-slate">Norsical name</dt>
+          <dd>{r.norsical_name ?? "—"}</dd>
+          <dt className="text-slate">Patrol</dt>
+          <dd>{r.patrol ?? "—"}</dd>
+          <dt className="text-slate">Designation</dt>
+          <dd>{r.designation ?? "—"}</dd>
+          <dt className="text-slate">Friday meal</dt>
+          <dd>{r.meal_friday ?? "—"}</dd>
+          <dt className="text-slate">Saturday meal</dt>
+          <dd>{r.meal_saturday ?? "—"}</dd>
+          <dt className="text-slate">Hard drugs declaration</dt>
+          <dd className={r.hard_drugs_declaration === "yes" ? "font-semibold text-warn" : ""}>
+            {r.hard_drugs_declaration ?? "—"}
+          </dd>
+          <dt className="text-slate">Conduct rules accepted</dt>
+          <dd>{r.conduct_rules_accepted_at ? fmtDate(r.conduct_rules_accepted_at) : "—"}</dd>
+        </dl>
+      </div>
       {canManage && (
         <div className="mt-4 flex flex-wrap gap-3">
           {actions

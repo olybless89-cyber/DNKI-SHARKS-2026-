@@ -1,4 +1,4 @@
-import { AnnouncementInput, CategoryInput, EventConfigInput, ProgrammeItemInput } from "@dnki/shared";
+import { AnnouncementInput, CategoryInput, EventConfigInput, OptionInput, ProgrammeItemInput } from "@dnki/shared";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
@@ -11,6 +11,7 @@ export type EventRow = {
   id: string;
   slug: string;
   name: string;
+  edition: string;
   theme: string;
   description: string;
   venue_text: string | null;
@@ -28,7 +29,27 @@ export type EventRow = {
   privacy_notice: string;
   terms: string;
   faqs: { q: string; a: string }[];
+  contacts: { role: string; name: string; phone: string | null }[];
 };
+
+export type OptionRow = { id: string; kind: string; label: string; sort: number; is_active: boolean };
+
+/** Active registration choice lists grouped by kind (patrol, designation, meals). */
+export async function activeOptions(q: Queryable, eventId: string) {
+  const rows = await many<OptionRow>(
+    q,
+    "select id, kind, label, sort, is_active from registration_options where event_id = $1 and is_active order by kind, sort, label",
+    [eventId],
+  );
+  const out: Record<string, { id: string; label: string }[]> = {
+    patrol: [],
+    designation: [],
+    meal_friday: [],
+    meal_saturday: [],
+  };
+  for (const r of rows) out[r.kind]?.push({ id: r.id, label: r.label });
+  return out;
+}
 
 export async function getActiveEvent(q: Queryable): Promise<EventRow> {
   const ev = await one<EventRow>(q, "select * from events where is_active");
@@ -48,6 +69,7 @@ export function registrationWindow(ev: EventRow, now: Date): { open: boolean; re
 function publicEvent(ev: EventRow, now: Date) {
   return {
     name: ev.name,
+    edition: ev.edition,
     theme: ev.theme,
     description: ev.description,
     venue: ev.venue_text,
@@ -56,6 +78,7 @@ function publicEvent(ev: EventRow, now: Date) {
     timezone: ev.timezone,
     registration: { ...registrationWindow(ev, now), opensAt: ev.registration_opens_at, closesAt: ev.registration_closes_at },
     support: { email: ev.support_email, phone: ev.support_phone },
+    contacts: ev.contacts,
     faqs: ev.faqs,
   };
 }
@@ -91,6 +114,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
     return {
       event: publicEvent(ev, app.ctx.now()),
       categories,
+      options: await activeOptions(db, ev.id),
       programme,
       announcements: announcements.map((a) => ({ ...a, visibility: "PUBLIC" })),
     };
@@ -118,7 +142,15 @@ export async function eventRoutes(fastify: FastifyInstance) {
       ),
       many(db, "select * from event_sessions where event_id = $1 order by starts_at", [ev.id]),
     ]);
-    return { event: ev, categories, programme };
+    const options = await many(
+      db,
+      `select o.id, o.kind, o.label, o.sort, o.is_active,
+              (select count(*)::int from registrations r where r.status not in ('cancelled', 'refunded')
+                 and o.id in (r.patrol_option_id, r.designation_option_id, r.meal_friday_option_id, r.meal_saturday_option_id)) as used
+         from registration_options o where o.event_id = $1 order by o.kind, o.sort, o.label`,
+      [ev.id],
+    );
+    return { event: ev, categories, programme, options };
   });
 
   app.put("/admin/event", { schema: { body: EventConfigInput, tags: ["event-admin"] } }, async (req) => {
@@ -130,7 +162,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
         `update events set name = $2, theme = $3, description = $4, venue_text = $5, starts_at = $6, ends_at = $7,
                 registration_opens_at = $8, registration_closes_at = $9, registration_open = $10, reentry_policy = $11,
                 credential_valid_from = $12, credential_valid_until = $13, support_email = $14, support_phone = $15,
-                privacy_notice = $16, terms = $17, faqs = $18, updated_at = now()
+                privacy_notice = $16, terms = $17, faqs = $18, edition = $19, contacts = $20, updated_at = now()
           where id = $1`,
         [
           ev.id,
@@ -151,6 +183,8 @@ export async function eventRoutes(fastify: FastifyInstance) {
           b.privacyNotice,
           b.terms,
           JSON.stringify(b.faqs),
+          b.edition,
+          JSON.stringify(b.contacts),
         ],
       );
       const changed = Object.entries({
@@ -226,6 +260,43 @@ export async function eventRoutes(fastify: FastifyInstance) {
         });
         return { ok: true };
       });
+    },
+  );
+
+  app.post("/admin/event/options", { schema: { body: OptionInput, tags: ["event-admin"] } }, async (req) => {
+    requirePermission(req, "event.configure");
+    const ev = await getActiveEvent(db);
+    const row = await one<{ id: string }>(
+      db,
+      `insert into registration_options (event_id, kind, label, sort) values ($1, $2, $3, $4)
+       on conflict (event_id, kind, label) do update set is_active = true returning id`,
+      [ev.id, req.body.kind, req.body.label, req.body.sort],
+    );
+    await audit(db, req, {
+      action: "event.option_added",
+      entityType: "registration_option",
+      entityId: row?.id,
+      metadata: { kind: req.body.kind, label: req.body.label },
+    });
+    return { id: row?.id };
+  });
+
+  app.post(
+    "/admin/event/options/:id/active",
+    { schema: { params: z.object({ id: z.uuid() }), body: z.object({ isActive: z.boolean() }), tags: ["event-admin"] } },
+    async (req) => {
+      requirePermission(req, "event.configure");
+      const r = await db.query("update registration_options set is_active = $2 where id = $1", [
+        req.params.id,
+        req.body.isActive,
+      ]);
+      if (!r.rowCount) throw Errors.notFound("Option");
+      await audit(db, req, {
+        action: req.body.isActive ? "event.option_enabled" : "event.option_disabled",
+        entityType: "registration_option",
+        entityId: req.params.id,
+      });
+      return { ok: true };
     },
   );
 

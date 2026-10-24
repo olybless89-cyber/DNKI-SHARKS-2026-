@@ -76,14 +76,56 @@ export const MemberCorrectionInput = z.object({
   reason: z.string().trim().min(5).max(500),
 });
 
+const personName = z.string().trim().min(2).max(120);
+export const HARD_DRUGS_ANSWERS = ["yes", "no"] as const;
+
 export const CreateRegistrationInput = z.object({
   categoryId: uuid,
+  norishName: personName,
+  norsicalName: personName,
+  patrolId: uuid,
+  designationId: uuid,
+  mealFridayId: uuid,
+  mealSaturdayId: uuid,
+  hardDrugs: z.enum(HARD_DRUGS_ANSWERS, { error: "Answer the hard drugs question" }),
+  acceptConductRules: z.literal(true, {
+    error: "You must agree to the rule prohibiting hard drugs and obnoxious substances",
+  }),
   acceptTerms: z.literal(true, { error: "You must accept the terms to register" }),
+});
+
+export const OPTION_KINDS = ["patrol", "designation", "meal_friday", "meal_saturday"] as const;
+export const OptionInput = z.object({
+  kind: z.enum(OPTION_KINDS),
+  label: z.string().trim().min(1).max(120),
+  sort: z.number().int().min(0).max(10_000).default(0),
+});
+
+export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const PhotoUploadInput = z.object({
+  contentType: z.enum(PHOTO_TYPES),
+  // ~2 MB binary limit once decoded
+  dataBase64: z
+    .string()
+    .min(16)
+    .max(2_900_000)
+    .regex(/^[A-Za-z0-9+/]+=*$/, "Invalid image data"),
+});
+
+export const EventContact = z.object({
+  role: z.string().trim().min(2).max(80),
+  name: z.string().trim().min(2).max(120),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[0-9 ()-]{7,20}$/)
+    .nullable(),
 });
 
 const isoDate = z.iso.datetime({ offset: true });
 export const EventConfigInput = z.object({
   name: z.string().trim().min(3).max(160),
+  edition: z.string().trim().max(120),
   theme: z.string().trim().max(160),
   description: z.string().trim().max(5000),
   venueText: z.string().trim().max(500).nullable(),
@@ -100,6 +142,7 @@ export const EventConfigInput = z.object({
   privacyNotice: z.string().max(20000),
   terms: z.string().max(20000),
   faqs: z.array(z.object({ q: z.string().min(3).max(300), a: z.string().min(1).max(3000) })).max(50),
+  contacts: z.array(EventContact).max(10),
   reason: z.string().trim().min(3).max(500),
 });
 

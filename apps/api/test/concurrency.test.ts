@@ -9,6 +9,7 @@ import {
   member,
   participant,
   passToken,
+  regBody,
   registerAndPay,
   setupEvent,
   staff,
@@ -62,7 +63,7 @@ describe("idempotent payment fulfilment", () => {
   it("fulfils once under 15 concurrent verifications of the same successful payment", async () => {
     const p = await participant(env);
     await verifyMembership(env, p.c, await member(env));
-    const reg = (await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true })).json();
+    const reg = (await p.c.post("/registrations", regBody(ev.categoryId))).json();
     const { reference } = (await p.c.post(`/registrations/${reg.id}/checkout`)).json();
     await env.ctx.db.query("update sandbox_mock_payments set status = 'success' where reference = $1", [reference]);
     const outcomes = await Promise.all(Array.from({ length: 15 }, () => verifyAndApply(env.ctx, reference, "reconciliation")));
@@ -106,7 +107,7 @@ describe("idempotent payment fulfilment", () => {
   it("an amount mismatch is held for review and never accredits", async () => {
     const p = await participant(env);
     await verifyMembership(env, p.c, await member(env));
-    const reg = (await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true })).json();
+    const reg = (await p.c.post("/registrations", regBody(ev.categoryId))).json();
     const { reference } = (await p.c.post(`/registrations/${reg.id}/checkout`)).json();
     await env.ctx.db.query("update sandbox_mock_payments set status = 'success', amount_minor = 100 where reference = $1", [
       reference,
@@ -122,7 +123,7 @@ describe("idempotent payment fulfilment", () => {
   it("money arriving after a cancellation is held for review, not fulfilled", async () => {
     const p = await participant(env);
     await verifyMembership(env, p.c, await member(env));
-    const reg = (await p.c.post("/registrations", { categoryId: ev.categoryId, acceptTerms: true })).json();
+    const reg = (await p.c.post("/registrations", regBody(ev.categoryId))).json();
     const { reference } = (await p.c.post(`/registrations/${reg.id}/checkout`)).json();
     expect((await p.c.post(`/registrations/${reg.id}/cancel`)).statusCode).toBe(200);
     await env.ctx.db.query("update sandbox_mock_payments set status = 'success' where reference = $1", [reference]);
@@ -133,9 +134,7 @@ describe("idempotent payment fulfilment", () => {
     const small = await setupEvent(env, { capacity: 3 });
     const people = await Promise.all(Array.from({ length: 8 }, () => participant(env)));
     for (const p of people) await verifyMembership(env, p.c, await member(env));
-    const res = await Promise.all(
-      people.map((p) => p.c.post("/registrations", { categoryId: small.categoryId, acceptTerms: true })),
-    );
+    const res = await Promise.all(people.map((p) => p.c.post("/registrations", regBody(small.categoryId))));
     expect(res.filter((r) => r.statusCode === 201)).toHaveLength(3);
     expect(res.filter((r) => r.json().error?.code === "CATEGORY_FULL")).toHaveLength(5);
   });

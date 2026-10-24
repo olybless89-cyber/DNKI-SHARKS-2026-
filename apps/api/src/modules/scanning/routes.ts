@@ -38,6 +38,10 @@ type CredentialForScan = {
   category: string;
   requires_identity_check: boolean;
   event_id: string;
+  norsical_name: string | null;
+  patrol: string | null;
+  designation: string | null;
+  has_photo: boolean;
 };
 
 export async function scanningRoutes(fastify: FastifyInstance) {
@@ -75,12 +79,16 @@ export async function scanningRoutes(fastify: FastifyInstance) {
       q,
       `select c.id, c.accreditation_id, c.status, c.valid_from, c.valid_until, c.admitted_at, g.name as admitted_gate_name,
               c.presence, r.status as registration_status, m.standing, u.full_name as holder_name, m.chapter,
-              cat.name as category, cat.requires_identity_check, c.event_id
+              cat.name as category, cat.requires_identity_check, c.event_id,
+              r.norsical_name, po.label as patrol, de.label as designation,
+              exists (select 1 from participant_photos ph where ph.user_id = c.user_id) as has_photo
          from accreditation_credentials c
          join registrations r on r.id = c.registration_id
          join member_records m on m.id = r.member_record_id
          join users u on u.id = c.user_id
          join registration_categories cat on cat.id = r.category_id
+         left join registration_options po on po.id = r.patrol_option_id
+         left join registration_options de on de.id = r.designation_option_id
          left join gates g on g.id = c.admitted_gate_id
         where ${where === "token" ? "c.token_hash" : "c.accreditation_id"} = $1`,
       [value],
@@ -104,7 +112,16 @@ export async function scanningRoutes(fastify: FastifyInstance) {
 
   function participantView(c: CredentialForScan) {
     // Minimum needed for identity confirmation at the gate.
-    return { accreditationId: c.accreditation_id, name: c.holder_name, chapter: c.chapter, category: c.category };
+    return {
+      accreditationId: c.accreditation_id,
+      name: c.holder_name,
+      norsicalName: c.norsical_name,
+      chapter: c.chapter,
+      patrol: c.patrol,
+      designation: c.designation,
+      category: c.category,
+      photoUrl: c.has_photo ? `/api/v1/staff/photos/credential/${c.id}` : null,
+    };
   }
 
   async function recordAttendance(

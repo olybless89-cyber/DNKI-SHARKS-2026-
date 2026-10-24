@@ -143,6 +143,25 @@ export async function staff(env: TestEnv, roles: string[], opts: { mfa?: boolean
   return { c, id: u?.id as string, email };
 }
 
+const OPTIONS: Record<string, string> = {};
+
+/** Complete, valid registration body using the seeded patrol/designation/meal options. */
+export function regBody(categoryId: string, over: Record<string, unknown> = {}) {
+  return {
+    categoryId,
+    norishName: "Synthetic Norish Name",
+    norsicalName: "Synthetic Norsical",
+    patrolId: OPTIONS.patrol,
+    designationId: OPTIONS.designation,
+    mealFridayId: OPTIONS.meal_friday,
+    mealSaturdayId: OPTIONS.meal_saturday,
+    hardDrugs: "no",
+    acceptConductRules: true,
+    acceptTerms: true,
+    ...over,
+  };
+}
+
 export async function setupEvent(
   env: TestEnv,
   opts: { capacity?: number | null; identityCheck?: boolean; fee?: number; reentry?: boolean } = {},
@@ -158,6 +177,14 @@ export async function setupEvent(
      values ($1, $2, 'Test Category', $3, 'NGN', $4, $5) returning id`,
     [ev?.id, `T${crockford(6)}`, opts.fee ?? 1_500_000, opts.capacity ?? null, opts.identityCheck ?? false],
   );
+  for (const kind of ["patrol", "designation", "meal_friday", "meal_saturday"]) {
+    const o = await one<{ id: string }>(
+      env.ctx.db,
+      "select id from registration_options where event_id = $1 and kind = $2 and is_active order by sort limit 1",
+      [ev?.id, kind],
+    );
+    if (o) OPTIONS[kind] = o.id;
+  }
   const gates: string[] = [];
   for (const code of ["A", "B"]) {
     const g = await one<{ id: string }>(env.ctx.db, "insert into gates (event_id, code, name) values ($1, $2, $3) returning id", [
@@ -178,7 +205,7 @@ export async function device(_env: TestEnv, supervisor: Client, gateId: string):
 
 /** Registration + sandbox checkout + simulated provider outcome. Returns the order reference. */
 export async function registerAndPay(_env: TestEnv, c: Client, categoryId: string, outcome: "success" | "failed" = "success") {
-  const reg = await c.post("/registrations", { categoryId, acceptTerms: true });
+  const reg = await c.post("/registrations", regBody(categoryId));
   if (reg.statusCode !== 201) throw new Error(`register ${reg.statusCode} ${reg.body}`);
   const checkout = await c.post(`/registrations/${reg.json().id}/checkout`);
   if (checkout.statusCode !== 200) throw new Error(`checkout ${checkout.body}`);

@@ -19,7 +19,16 @@ type Context = {
 type ScanResponse = {
   result: ScanResult;
   detail: string | null;
-  participant: { accreditationId: string; name: string; chapter: string; category: string } | null;
+  participant: {
+    accreditationId: string;
+    name: string;
+    norsicalName: string | null;
+    chapter: string;
+    patrol: string | null;
+    designation: string | null;
+    category: string;
+    photoUrl: string | null;
+  } | null;
   previous: { at: string; gate: string | null } | null;
   credentialId?: string;
 };
@@ -436,11 +445,31 @@ function ScanStation({
             <p className="mt-3 max-w-md text-xl">{display.instruction}</p>
             {shown.detail && <p className="mt-2 max-w-md">{shown.detail}</p>}
             {shown.participant && (
-              <div className="mt-6 w-full max-w-md bg-paper p-4 text-left text-ink">
-                <p className="display text-3xl">{shown.participant.name}</p>
-                <p>{shown.participant.chapter}</p>
-                <p className="font-semibold">{shown.participant.category}</p>
-                <p className="mt-1 font-display text-lg tracking-widest">{shown.participant.accreditationId}</p>
+              <div className="mt-6 flex w-full max-w-md gap-4 bg-paper p-4 text-left text-ink">
+                {shown.participant.photoUrl ? (
+                  // biome-ignore lint/performance/noImgElement: authenticated staff photo endpoint
+                  <img
+                    src={shown.participant.photoUrl}
+                    alt={`Photo on file for ${shown.participant.name}`}
+                    className="h-32 w-26 shrink-0 rounded-sm border-2 border-ink object-cover"
+                  />
+                ) : (
+                  <span className="flex h-32 w-26 shrink-0 items-center justify-center rounded-sm border-2 border-dashed border-line text-center text-xs text-slate">
+                    No photo on file — check ID
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="display text-3xl break-words">{shown.participant.name}</p>
+                  {shown.participant.norsicalName && (
+                    <p className="font-semibold text-crimson">“{shown.participant.norsicalName}”</p>
+                  )}
+                  <p>{shown.participant.patrol ?? shown.participant.chapter}</p>
+                  <p className="font-semibold">
+                    {shown.participant.category}
+                    {shown.participant.designation ? ` · ${shown.participant.designation}` : ""}
+                  </p>
+                  <p className="mt-1 font-display text-lg tracking-widest">{shown.participant.accreditationId}</p>
+                </div>
               </div>
             )}
             {shown.previous && (

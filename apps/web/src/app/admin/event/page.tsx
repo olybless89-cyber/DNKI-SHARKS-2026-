@@ -8,6 +8,8 @@ import { type ApiError, api, fmtDate, useApi } from "@/lib/api";
 
 type Ev = {
   name: string;
+  edition: string;
+  contacts: { role: string; name: string; phone: string | null }[];
   theme: string;
   description: string;
   venue_text: string | null;
@@ -41,7 +43,24 @@ type Data = {
   event: Ev;
   categories: Category[];
   programme: { id: string; title: string; starts_at: string; location: string | null }[];
+  options: { id: string; kind: string; label: string; sort: number; is_active: boolean; used: number }[];
 };
+
+const OPTION_KINDS = [
+  ["patrol", "Patrols"],
+  ["designation", "Designations"],
+  ["meal_friday", "Friday meals"],
+  ["meal_saturday", "Saturday meals"],
+] as const;
+
+/** One contact per line: Role | Name | Phone */
+const contactsToText = (c: Ev["contacts"]) => c.map((x) => [x.role, x.name, x.phone ?? ""].join(" | ")).join("\n");
+const textToContacts = (t: string) =>
+  t
+    .split("\n")
+    .map((l) => l.split("|").map((p) => p.trim()))
+    .filter((p) => p[0] && p[1])
+    .map(([role = "", name = "", phone = ""]) => ({ role, name, phone: phone || null }));
 
 /** datetime-local value (Lagos wall time) <-> ISO */
 const toLocal = (v: string | null) => (v ? new Date(new Date(v).getTime() + 60 * 60_000).toISOString().slice(0, 16) : "");
@@ -94,6 +113,8 @@ export default function EventSettings() {
               method: "PUT",
               body: {
                 name: f.get("name"),
+                edition: f.get("edition") ?? "",
+                contacts: textToContacts(String(f.get("contacts") ?? "")),
                 theme: f.get("theme"),
                 description: f.get("description"),
                 venueText: f.get("venue") || null,
@@ -118,7 +139,19 @@ export default function EventSettings() {
       >
         <fieldset disabled={!canEdit} className="contents">
           <Field label="Event name" name="name" defaultValue={e.name} required />
-          <Field label="Theme" name="theme" defaultValue={e.theme} />
+          <Field label="Edition" name="edition" defaultValue={e.edition} placeholder="The 18th DNKI Converge" />
+          <div className="sm:col-span-2">
+            <Field label="Theme" name="theme" defaultValue={e.theme} />
+          </div>
+          <div className="sm:col-span-2">
+            <TextArea
+              label="Accreditation contacts"
+              name="contacts"
+              rows={3}
+              defaultValue={contactsToText(e.contacts)}
+              hint="One per line: Role | Name | Phone. Shown publicly on the event page."
+            />
+          </div>
           <div className="sm:col-span-2">
             <TextArea label="Overview" name="description" defaultValue={e.description} rows={4} />
           </div>
@@ -255,6 +288,77 @@ export default function EventSettings() {
             </div>
           </form>
         )}
+      </section>
+
+      <section className="mt-14">
+        <h2 className="font-display text-3xl font-semibold">Registration choices</h2>
+        <p className="text-slate">
+          Options delegates pick from. Disable an option instead of deleting it; existing registrations keep their choice.
+        </p>
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          {OPTION_KINDS.map(([kind, title]) => {
+            const items = data.options.filter((x) => x.kind === kind);
+            return (
+              <details key={kind} className="border-2 border-line p-4" open={kind !== "patrol"}>
+                <summary className="cursor-pointer font-display text-xl font-semibold">
+                  {title} ({items.filter((x) => x.is_active).length} active)
+                </summary>
+                <ul className="mt-3 max-h-80 divide-y divide-line overflow-y-auto">
+                  {items.map((x) => (
+                    <li key={x.id} className="flex items-center justify-between gap-3 py-1.5">
+                      <span className={x.is_active ? "" : "text-slate line-through"}>
+                        {x.label} <span className="text-xs text-slate">({x.used})</span>
+                      </span>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          className="min-h-0 px-0 text-sm"
+                          onClick={() =>
+                            run(
+                              async () =>
+                                void (await api(`/admin/event/options/${x.id}/active`, { body: { isActive: !x.is_active } })),
+                              `${x.label} ${x.is_active ? "disabled" : "enabled"}.`,
+                            )
+                          }
+                        >
+                          {x.is_active ? "Disable" : "Enable"}
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {canEdit && (
+                  <form
+                    className="mt-3 flex gap-2"
+                    onSubmit={(ev) => {
+                      ev.preventDefault();
+                      const form = ev.currentTarget;
+                      const label = String(new FormData(form).get("label") ?? "").trim();
+                      if (!label) return;
+                      void run(async () => {
+                        await api("/admin/event/options", { body: { kind, label, sort: items.length + 1 } });
+                        form.reset();
+                      }, `${label} added.`);
+                    }}
+                  >
+                    <label htmlFor={`add-${kind}`} className="sr-only">
+                      Add to {title}
+                    </label>
+                    <input
+                      id={`add-${kind}`}
+                      name="label"
+                      placeholder="Add option"
+                      className="min-h-10 flex-1 rounded-sm border-2 border-line px-2"
+                    />
+                    <Button type="submit" variant="secondary" className="min-h-10 text-base">
+                      Add
+                    </Button>
+                  </form>
+                )}
+              </details>
+            );
+          })}
+        </div>
       </section>
 
       <section className="mt-14">

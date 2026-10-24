@@ -51,8 +51,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
          from gates g left join attendance_events a on a.gate_id = g.id where g.event_id = $1 group by g.id order by g.name`,
       [ev.id],
     );
+    // Catering counts from confirmed (paid or accredited) delegates only.
+    const catering = await many(
+      db,
+      `select o.kind, o.label, count(r.id)::int as delegates
+         from registration_options o
+         left join registrations r on r.status in ('paid', 'accredited')
+               and (r.meal_friday_option_id = o.id or r.meal_saturday_option_id = o.id)
+        where o.event_id = $1 and o.kind in ('meal_friday', 'meal_saturday')
+        group by o.kind, o.label, o.sort order by o.kind, o.sort`,
+      [ev.id],
+    );
     return {
       metrics: m,
+      catering,
       attendanceByGate: byGate,
       environment: {
         demoMode: config.DEMO_MODE,
@@ -260,10 +272,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
     // Deliberately minimal columns: no emails, phones, payment details or tokens.
     const rows = await many<Record<string, unknown>>(
       db,
-      `select r.reference, r.status, m.membership_number, u.full_name, m.chapter, c.name as category,
-              a.accreditation_id, a.status as credential_status, a.admitted_at, r.created_at
+      `select r.reference, r.status, m.membership_number, u.full_name, r.norish_name, r.norsical_name, m.chapter,
+              po.label as patrol, de.label as designation, c.name as category, mf.label as meal_friday,
+              ms.label as meal_saturday, a.accreditation_id, a.status as credential_status, a.admitted_at, r.created_at
          from registrations r join users u on u.id = r.user_id join member_records m on m.id = r.member_record_id
          join registration_categories c on c.id = r.category_id
+         left join registration_options po on po.id = r.patrol_option_id
+         left join registration_options de on de.id = r.designation_option_id
+         left join registration_options mf on mf.id = r.meal_friday_option_id
+         left join registration_options ms on ms.id = r.meal_saturday_option_id
          left join accreditation_credentials a on a.registration_id = r.id and a.status in ('active', 'suspended')
         where r.event_id = $1 order by r.created_at`,
       [ev.id],
@@ -279,8 +296,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
       "status",
       "membership_number",
       "full_name",
+      "norish_name",
+      "norsical_name",
       "chapter",
+      "patrol",
+      "designation",
       "category",
+      "meal_friday",
+      "meal_saturday",
       "accreditation_id",
       "credential_status",
       "admitted_at",

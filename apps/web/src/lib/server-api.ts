@@ -5,6 +5,7 @@ const API = process.env.API_INTERNAL_URL ?? "http://localhost:4000";
 export type PublicEvent = {
   event: {
     name: string;
+    edition: string;
     theme: string;
     description: string;
     venue: string | null;
@@ -14,7 +15,9 @@ export type PublicEvent = {
     registration: { open: boolean; reason: string | null; opensAt: string | null; closesAt: string | null };
     support: { email: string | null; phone: string | null };
     faqs: { q: string; a: string }[];
+    contacts: { role: string; name: string; phone: string | null }[];
   };
+  options: Record<"patrol" | "designation" | "meal_friday" | "meal_saturday", { id: string; label: string }[]>;
   categories: {
     id: string;
     code: string;

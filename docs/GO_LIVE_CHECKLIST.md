@@ -8,8 +8,8 @@ Production readiness requires every item to be ticked with evidence. **Current s
 - [ ] Payment provider selected; live merchant account verified
 - [ ] Event dates, venue, categories, fees, capacity, programme entered by an Event Administrator
 - [ ] Privacy notice and terms approved (NDPA review) and published
-- [ ] Official DNKI logo supplied and replaces the typographic placeholder
-- [ ] Support contacts published
+- [x] Official DNKI crest and SHARKS 2026 emblem applied (taken from dnkiconvergeportal.com; confirm DNKI approves this use)
+- [x] Accreditation contacts published (from dnkiconvergeportal.com)
 - [ ] Re-entry policy and identity-check categories decided
 
 ## Functional

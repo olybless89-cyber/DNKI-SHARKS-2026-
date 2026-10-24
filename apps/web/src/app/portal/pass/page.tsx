@@ -16,6 +16,11 @@ type Credential = {
   category: string;
   requires_identity_check: boolean;
   event_name: string;
+  event_theme: string;
+  norsical_name: string | null;
+  patrol: string | null;
+  designation: string | null;
+  has_photo: boolean;
   qrSvg: string | null;
 };
 
@@ -47,7 +52,11 @@ export default function Pass() {
       <div className="grid gap-10 lg:grid-cols-[minmax(0,360px)_1fr]">
         <PassBadge
           name={c.holder_name}
-          chapter={c.chapter}
+          chapter={c.patrol ?? c.chapter}
+          norsicalName={c.norsical_name}
+          designation={c.designation}
+          photoUrl={c.has_photo ? "/api/v1/me/photo" : null}
+          tagline={c.event_theme}
           category={c.category}
           accreditationId={c.accreditation_id}
           status={c.status}

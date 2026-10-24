@@ -1,4 +1,5 @@
 import { formatMoney } from "@dnki/shared";
+import Image from "next/image";
 import Link from "next/link";
 import { PassBadge, SampleQr } from "@/components/pass-badge";
 import { LinkButton, Wordmark } from "@/components/ui";
@@ -7,8 +8,30 @@ import { getPublicEvent } from "@/lib/server-api";
 // Rendered per request (with a 30 s data cache) so a build without a reachable API never caches a fallback page.
 export const dynamic = "force-dynamic";
 
-const fmt = (v: string | null, tz: string) =>
-  v ? new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: tz }).format(new Date(v)) : null;
+/** "Thursday 10th – Sunday 13th December 2026" style date range in the event's timezone. */
+function dateRange(start: string | null, end: string | null, tz: string): string | null {
+  if (!start) return null;
+  const parts = (d: string) => {
+    const f = new Intl.DateTimeFormat("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: tz,
+    }).formatToParts(new Date(d));
+    const get = (t: string) => f.find((p) => p.type === t)?.value ?? "";
+    return { weekday: get("weekday"), day: get("day"), month: get("month"), year: get("year") };
+  };
+  const a = parts(start);
+  if (!end) return `${a.weekday} ${a.day} ${a.month} ${a.year}`;
+  const b = parts(end);
+  return a.month === b.month && a.year === b.year
+    ? `${a.weekday} ${a.day} – ${b.weekday} ${b.day} ${b.month} ${b.year}`
+    : `${a.weekday} ${a.day} ${a.month} – ${b.weekday} ${b.day} ${b.month} ${b.year}`;
+}
+
+const fmtTime = (v: string, tz: string) =>
+  new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: tz }).format(new Date(v));
 
 const STEPS = [
   {
@@ -16,8 +39,8 @@ const STEPS = [
     body: "Create an account and confirm your DNKI membership. We send a code to the contact your chapter holds on record, or an officer reviews your request.",
   },
   {
-    title: "Register",
-    body: "Choose your registration category and accept the terms. Each verified member can hold one registration.",
+    title: "Register as a delegate",
+    body: "Give your Norish and Norsical names, patrol, designation and meal choices, upload a passport photo, and accept the conduct rules.",
   },
   {
     title: "Pay securely",
@@ -25,7 +48,7 @@ const STEPS = [
   },
   {
     title: "Receive your pass",
-    body: "Your digital pass and QR code appear in your dashboard and arrive by email. It admits you once; gate staff may confirm your identity.",
+    body: "Your digital pass and QR code appear in your dashboard and arrive by email. It admits you once; gate staff check your photo.",
   },
 ];
 
@@ -33,13 +56,21 @@ export default async function Home() {
   const data = await getPublicEvent();
   const ev = data?.event;
   const tz = ev?.timezone ?? "Africa/Lagos";
-  const when = fmt(ev?.startsAt ?? null, tz);
+  const when = dateRange(ev?.startsAt ?? null, ev?.endsAt ?? null, tz);
+  const tickerText = [
+    ev?.edition ?? "The 18th DNKI Converge",
+    ev?.theme ?? "Rebuilding the Brotherhood, Empowering Our Future",
+    when,
+  ]
+    .filter(Boolean)
+    .join(" — ")
+    .toUpperCase();
 
   return (
     <>
       <header className="bg-ink text-paper">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/" aria-label="DNKI SHARKS home">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link href="/" aria-label="DNKI Converge 2026 home" className="flex items-center gap-3">
             <Wordmark invert />
           </Link>
           <nav aria-label="Main" className="flex items-center gap-5 text-[0.95rem]">
@@ -49,8 +80,8 @@ export default async function Home() {
             <a href="#programme" className="hidden hover:underline sm:inline">
               Programme
             </a>
-            <a href="#faq" className="hidden hover:underline md:inline">
-              Questions
+            <a href="#contacts" className="hidden hover:underline md:inline">
+              Contacts
             </a>
             <Link href="/auth/login" className="font-semibold hover:underline">
               Sign in
@@ -59,36 +90,45 @@ export default async function Home() {
         </div>
       </header>
 
+      <div className="overflow-hidden border-y-2 border-crimson bg-paper py-1.5" aria-label={tickerText}>
+        <div className="ticker font-display text-sm font-bold tracking-[0.12em] text-crimson" aria-hidden>
+          {[0, 1].map((i) => (
+            <span key={i} className="px-8 whitespace-nowrap">
+              {tickerText} &nbsp;•&nbsp; {tickerText} &nbsp;•&nbsp;
+            </span>
+          ))}
+        </div>
+      </div>
+
       <main id="main">
         <section className="relative overflow-hidden bg-ink text-paper">
-          <div className="mx-auto grid max-w-6xl gap-12 px-4 pt-10 pb-20 sm:px-6 lg:grid-cols-[1.25fr_1fr] lg:pt-16">
-            <div className="flex flex-col justify-center">
-              <p className="text-paper/70">De Norsemen Kclub International</p>
-              <h1 className="display mt-3 text-[clamp(3.5rem,11vw,8.5rem)] uppercase">
-                Sharks
-                <span className="block text-[0.52em] leading-[0.95] font-semibold tracking-normal normal-case">
-                  International Convergence
-                </span>
-              </h1>
-              <div className="mt-6 flex items-center gap-3">
-                <span aria-hidden className="h-1 w-8 shrink-0 bg-crimson sm:w-12" />
-                <p className="font-display text-xl font-semibold tracking-[0.06em] sm:text-2xl sm:tracking-[0.12em]">
-                  {ev?.theme ?? "REBUILDING THE BROTHERHOOD"}
+          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-20 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:pt-16">
+            <div>
+              <p className="font-display text-xl font-semibold tracking-wide text-paper/80">
+                {ev?.edition ?? "The 18th DNKI Converge"}
+              </p>
+              <h1 className="display glow mt-3 text-[clamp(3.5rem,11vw,8rem)] uppercase">Sharks 2026</h1>
+              <p className="display mt-1 text-[clamp(1.8rem,5vw,3.25rem)] font-semibold">International Converge</p>
+              <p className="mt-2 font-display text-xl tracking-wide text-paper/80">Delegates Accreditation Portal</p>
+              <div className="mt-6 flex items-start gap-3">
+                <span aria-hidden className="mt-3 h-1 w-8 shrink-0 bg-crimson sm:w-12" />
+                <p className="font-display text-xl font-semibold tracking-[0.06em] uppercase sm:text-2xl">
+                  {ev?.theme ?? "Rebuilding the Brotherhood, Empowering Our Future"}
                 </p>
               </div>
-              <dl className="mt-8 grid gap-1 text-paper/85">
-                <div className="flex gap-2">
+              <dl className="mt-8 space-y-1 text-lg">
+                <div>
                   <dt className="sr-only">When</dt>
-                  <dd>{when ?? "Dates will be announced by DNKI."}</dd>
+                  <dd className="font-semibold">{when ?? "Dates will be announced by DNKI."}</dd>
                 </div>
-                <div className="flex gap-2">
+                <div>
                   <dt className="sr-only">Where</dt>
-                  <dd>{ev?.venue ?? "Venue will be announced by DNKI."}</dd>
+                  <dd className="text-paper/80">{ev?.venue ?? "Venue details will be shared with registered delegates."}</dd>
                 </div>
               </dl>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 {ev?.registration.open ? (
-                  <LinkButton href="/auth/signup">Register as a member</LinkButton>
+                  <LinkButton href="/auth/signup">Register here</LinkButton>
                 ) : (
                   <p className="border-l-4 border-crimson pl-3 text-paper/90">
                     {ev?.registration.reason ?? "Registration is not open yet."}
@@ -99,18 +139,20 @@ export default async function Home() {
                 </Link>
               </div>
               <p className="mt-6 max-w-md text-sm text-paper/60">
-                Registration is open only to verified members of DNKI and requires payment.
+                Registration is open only to verified members of De Norsemen Kclub International and requires payment.
               </p>
             </div>
-            <div className="lg:rotate-[3deg] lg:pt-4">
-              <PassBadge
-                name="Your Name"
-                category="Delegate"
-                accreditationId="DNKI-XXXXX-XXXXX"
-                chapter="Your chapter"
-                qr={<SampleQr />}
-                sample
-              />
+            <div className="mx-auto w-full max-w-[420px]">
+              <div className="flex aspect-square items-center justify-center overflow-hidden rounded-full border-[10px] border-crimson bg-paper shadow-[0_0_60px_rgb(200_16_46/0.35)]">
+                <Image
+                  src="/brand/sharks-2026-emblem.webp"
+                  alt="SHARKS 2026 emblem: De Norsemen Kclub International, Rebuilding the Brotherhood, Empowering our Future, 10th–13th December 2026"
+                  width={260}
+                  height={281}
+                  className="h-auto w-[72%]"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -124,18 +166,32 @@ export default async function Home() {
         )}
 
         <section id="how" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <h2 className="display text-5xl">How accreditation works</h2>
-          <ol className="mt-10 grid gap-x-10 gap-y-12 md:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="border-t-4 border-ink pt-4">
-                <span className="display text-6xl text-crimson" aria-hidden>
-                  {i + 1}
-                </span>
-                <h3 className="mt-2 font-display text-2xl font-semibold">{s.title}</h3>
-                <p className="mt-2 text-slate">{s.body}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="grid gap-12 lg:grid-cols-[1fr_340px]">
+            <div>
+              <h2 className="display text-5xl">How accreditation works</h2>
+              <ol className="mt-10 grid gap-x-10 gap-y-12 md:grid-cols-2">
+                {STEPS.map((s, i) => (
+                  <li key={s.title} className="border-t-4 border-ink pt-4">
+                    <span className="display text-6xl text-crimson" aria-hidden>
+                      {i + 1}
+                    </span>
+                    <h3 className="mt-2 font-display text-2xl font-semibold">{s.title}</h3>
+                    <p className="mt-2 text-slate">{s.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <aside aria-label="Sample delegate pass" className="lg:pt-4">
+              <PassBadge
+                name="Your Norish Name"
+                category="Delegate"
+                accreditationId="DNKI-XXXXX-XXXXX"
+                chapter="Your patrol"
+                qr={<SampleQr />}
+                sample
+              />
+            </aside>
+          </div>
         </section>
 
         <section className="bg-fog">
@@ -149,6 +205,10 @@ export default async function Home() {
                   register.
                 </p>
                 <p>Each member may hold one registration. Your accreditation is personal and cannot be transferred.</p>
+                <p>
+                  Every delegate must agree to the rule prohibiting the use of hard drugs and other obnoxious substances at
+                  Norsical activities, and to face the consequences of violating it.
+                </p>
               </div>
             </div>
             <div>
@@ -182,7 +242,7 @@ export default async function Home() {
               {data.programme.map((p) => (
                 <li key={p.id} className="relative py-4 pl-6">
                   <span aria-hidden className="absolute top-6 -left-[10px] size-4 bg-crimson" />
-                  <p className="text-sm text-slate">{fmt(p.starts_at, tz)}</p>
+                  <p className="text-sm text-slate">{fmtTime(p.starts_at, tz)}</p>
                   <p className="font-display text-2xl font-semibold">{p.title}</p>
                   {p.location && <p className="text-slate">{p.location}</p>}
                   {p.description && <p className="measure mt-1">{p.description}</p>}
@@ -190,7 +250,7 @@ export default async function Home() {
               ))}
             </ol>
           ) : (
-            <p className="mt-6 text-slate">The approved programme will be published here.</p>
+            <p className="mt-6 text-slate">The approved programme for {when ?? "the Converge"} will be published here.</p>
           )}
         </section>
 
@@ -227,21 +287,53 @@ export default async function Home() {
           </section>
         ) : null}
 
-        <section id="faq" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <h2 className="display text-5xl">Questions</h2>
-          <div className="measure mt-8 divide-y-2 divide-line border-y-2 border-line">
-            {(ev?.faqs ?? []).map((f) => (
-              <details key={f.q} className="group py-4">
-                <summary className="cursor-pointer list-none font-display text-2xl font-semibold marker:hidden">
-                  <span className="mr-3 inline-block w-4 text-crimson group-open:rotate-45 transition-transform" aria-hidden>
-                    +
-                  </span>
-                  {f.q}
-                </summary>
-                <p className="mt-2 pl-7">{f.a}</p>
-              </details>
-            ))}
-            {!ev?.faqs.length && <p className="py-4 text-slate">Questions and answers will be published here.</p>}
+        <section id="contacts" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+          <div className="grid gap-12 lg:grid-cols-2">
+            <div>
+              <h2 className="display text-5xl">For more information</h2>
+              <ul className="mt-6 space-y-5">
+                {(ev?.contacts ?? []).map((c) => (
+                  <li key={`${c.role}${c.name}`} className="border-l-4 border-crimson pl-4">
+                    <p className="text-sm font-semibold text-slate">{c.role}</p>
+                    <p className="font-display text-2xl font-semibold">{c.name}</p>
+                    {c.phone && (
+                      <a
+                        href={`tel:${c.phone.replace(/[^+\d]/g, "")}`}
+                        className="text-lg font-semibold text-crimson underline-offset-4 hover:underline"
+                      >
+                        {c.phone}
+                      </a>
+                    )}
+                  </li>
+                ))}
+                {!ev?.contacts?.length && <li className="text-slate">Accreditation contacts will be published here.</li>}
+                {ev?.support.email && (
+                  <li className="border-l-4 border-ink pl-4">
+                    <p className="text-sm font-semibold text-slate">Email</p>
+                    <a href={`mailto:${ev.support.email}`} className="text-lg underline">
+                      {ev.support.email}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <h2 className="display text-5xl">Questions</h2>
+              <div className="mt-6 divide-y-2 divide-line border-y-2 border-line">
+                {(ev?.faqs ?? []).map((f) => (
+                  <details key={f.q} className="group py-4">
+                    <summary className="cursor-pointer list-none font-display text-xl font-semibold marker:hidden">
+                      <span className="mr-3 inline-block w-4 text-crimson transition-transform group-open:rotate-45" aria-hidden>
+                        +
+                      </span>
+                      {f.q}
+                    </summary>
+                    <p className="mt-2 pl-7">{f.a}</p>
+                  </details>
+                ))}
+                {!ev?.faqs?.length && <p className="py-4 text-slate">Questions and answers will be published here.</p>}
+              </div>
+            </div>
           </div>
         </section>
       </main>
@@ -250,20 +342,13 @@ export default async function Home() {
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
           <div>
             <Wordmark invert />
-            <p className="mt-3 text-sm text-paper/60">Official accreditation portal for the SHARKS International Convergence.</p>
+            <p className="mt-3 text-sm text-paper/60">De Norsemen Kclub International · RC 7458 · Service to Humanity</p>
           </div>
           <div>
-            <h2 className="font-display text-xl font-semibold">Support</h2>
-            <p className="mt-2 text-paper/80">
-              {ev?.support.email ? (
-                <a href={`mailto:${ev.support.email}`} className="underline">
-                  {ev.support.email}
-                </a>
-              ) : (
-                "Support contact to be announced."
-              )}
+            <h2 className="font-display text-xl font-semibold">Accreditation</h2>
+            <p className="mt-2 text-sm text-paper/70">
+              Official delegates accreditation portal for SHARKS 2026 International Converge.
             </p>
-            {ev?.support.phone && <p className="text-paper/80">{ev.support.phone}</p>}
           </div>
           <div>
             <h2 className="font-display text-xl font-semibold">Legal</h2>
@@ -275,6 +360,7 @@ export default async function Home() {
                 Terms
               </Link>
             </p>
+            <p className="mt-4 text-sm text-paper/50">© DNKI Converge 2026. All rights reserved.</p>
           </div>
         </div>
       </footer>

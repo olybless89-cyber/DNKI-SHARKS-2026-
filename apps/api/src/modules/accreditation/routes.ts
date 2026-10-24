@@ -41,18 +41,25 @@ export async function accreditationRoutes(fastify: FastifyInstance) {
       event_starts_at: Date | null;
       venue: string | null;
       registration_reference: string;
+      norsical_name: string | null;
+      patrol: string | null;
+      designation: string | null;
+      has_photo: boolean;
     }>(
       db,
       `select c.id, c.accreditation_id, c.status, c.token_enc, c.issued_at, c.valid_from, c.valid_until, c.admitted_at,
               u.full_name as holder_name, m.membership_number, m.chapter, cat.name as category, cat.requires_identity_check,
               e.name as event_name, e.theme as event_theme, e.starts_at as event_starts_at, e.venue_text as venue,
-              r.reference as registration_reference
+              r.reference as registration_reference, r.norsical_name, po.label as patrol, de.label as designation,
+              exists (select 1 from participant_photos ph where ph.user_id = c.user_id) as has_photo
          from accreditation_credentials c
          join registrations r on r.id = c.registration_id
          join users u on u.id = c.user_id
          join member_records m on m.id = r.member_record_id
          join registration_categories cat on cat.id = r.category_id
          join events e on e.id = c.event_id
+         left join registration_options po on po.id = r.patrol_option_id
+         left join registration_options de on de.id = r.designation_option_id
         where c.user_id = $1 and e.is_active
         order by (c.status = 'active') desc, c.issued_at desc limit 1`,
       [userId],

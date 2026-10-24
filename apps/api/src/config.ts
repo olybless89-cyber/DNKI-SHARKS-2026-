@@ -35,7 +35,7 @@ const EnvSchema = z.object({
   MOCK_PAYMENT_WEBHOOK_SECRET: z.string().optional(),
 
   EMAIL_PROVIDER: z.enum(["log", "smtp"]).default("log"),
-  EMAIL_FROM: z.string().default("DNKI SHARKS Accreditation <no-reply@example.invalid>"),
+  EMAIL_FROM: z.string().default("DNKI Converge 2026 Accreditation <no-reply@example.invalid>"),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().optional(),
   SMTP_USER: z.string().optional(),

@@ -39,6 +39,12 @@ columns.
 | Notifications | `notifications`                                          | durable outbox, unique `idempotency_key`, retries with backoff                                                |
 |               | `dev_mailbox`                                            | demo-mode inbox only                                                                                          |
 
+Migration `0003` adds: `events.edition`, `events.contacts`; `registration_options` (patrol,
+designation, meal_friday, meal_saturday choice lists, unique per event/kind/label);
+delegate columns on `registrations` (Norish/Norsical names, option references, hard-drugs
+declaration, conduct-rule acceptance time); `participant_photos` (one per user, ≤ 2 MB,
+JPEG/PNG/WebP, SHA-256 recorded).
+
 Phase 5 will add `streaming_sessions`, `streaming_entitlements`, `playback_authorization_events`.
 
 ## Key indexes for hot paths
