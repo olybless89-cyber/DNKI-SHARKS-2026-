@@ -1,0 +1,24 @@
+{
+  "name": "dnki-sharks-platform",
+  "private": true,
+  "description": "DNKI SHARKS International Convergence — digital accreditation and secure streaming platform",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @dnki/api dev",
+    "dev:web": "pnpm --filter @dnki/web dev",
+    "db:migrate": "pnpm --filter @dnki/api db:migrate",
+    "db:seed": "pnpm --filter @dnki/api db:seed",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.2",
+    "typescript": "5.9.3"
+  }
+}
