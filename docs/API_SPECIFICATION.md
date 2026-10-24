@@ -1,0 +1,35 @@
+# API specification
+
+- Base path: `/api/v1`. Machine-readable OpenAPI 3.1: `GET /api/v1/openapi.json`
+  (interactive docs at `/api/docs` outside production).
+- Auth: session cookie set by `POST /auth/login`. Every `POST/PUT/PATCH/DELETE` must send
+  `x-dnki-csrf: 1` (except provider webhooks, which are signature-authenticated).
+- Errors: `{ "error": { "code", "message", "details?", "correlationId" } }`. Every response carries
+  `x-request-id`. 5xx responses never include internals.
+- Pagination: `?page=&pageSize=` (max 100) → `{ items, total, page, pageSize, pages }`.
+
+## Endpoint groups
+
+| Group              | Endpoints                                                                                                                                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Health             | `GET /health`, `GET /ready` (DB ping)                                                                                                                                                                                                                                                                                                                  |
+| Public             | `GET /public/event`, `GET /public/legal`                                                                                                                                                                                                                                                                                                               |
+| Auth               | `POST /auth/signup` `/login` `/logout` `/email/verify` `/email/resend` `/password/forgot` `/password/reset` `/password/change` `/mfa/setup` `/mfa/enable` `/mfa/challenge` `/sessions/revoke-others`; `GET /auth/me`, `/auth/sessions`                                                                                                                 |
+| Membership         | `GET /membership`; `POST /membership/verify`, `/membership/verify/confirm`, `/membership/manual-review`                                                                                                                                                                                                                                                |
+| Membership admin   | `GET /admin/membership/verifications`, `POST /admin/membership/verifications/:id/decision`, `GET/PATCH /admin/membership/records[/:id]`, `POST/GET /admin/membership/imports`, `POST /admin/membership/imports/:id/apply`, `GET /admin/membership/imports/:id/errors`                                                                                  |
+| Registration       | `GET /portal/summary`, `POST /registrations`, `POST /registrations/:id/cancel`; admin `GET /admin/registrations[/:id]`, `POST /admin/registrations/:id/action`                                                                                                                                                                                         |
+| Payments           | `POST /registrations/:id/checkout`, `GET /payments/orders/:reference/status`, `POST /payments/webhooks/:provider`; admin `GET /admin/payments/orders`, `/summary`, `/webhooks`, `POST /admin/payments/orders/:id/verify`, `/refund`, `POST /admin/payments/reconcile`; sandbox `GET/POST /sandbox/payments/:reference[/complete]` (mock provider only) |
+| Accreditation      | `GET /me/credential`, `GET /me/credential/qr.svg`; admin `GET /admin/credentials`, `/:id/events`, `POST /admin/credentials/:id/revoke`, `/reissue`                                                                                                                                                                                                     |
+| Scanning           | `GET /scanner/context`, `POST /scanner/devices`, `POST /scanner/scan`, `POST /scanner/override`, `GET /scanner/history`                                                                                                                                                                                                                                |
+| Gates & attendance | `GET/POST/PUT /admin/gates`, `POST/DELETE /admin/gates/:id/staff[/:userId]`, `POST /admin/devices/:id/deactivate`, `GET /admin/attendance`                                                                                                                                                                                                             |
+| Incidents          | `POST /incidents`, `GET /admin/incidents`, `PATCH /admin/incidents/:id`                                                                                                                                                                                                                                                                                |
+| Event & content    | `GET/PUT /admin/event`, `POST/PUT /admin/event/categories[/:id]`, `POST/DELETE /admin/event/programme[/:id]`, `GET/POST/PUT /admin/announcements[/:id]`                                                                                                                                                                                                |
+| Admin              | `GET /admin/overview`, `GET /admin/users`, `POST /admin/users/:id/roles`, `DELETE /admin/users/:id/roles/:role`, `POST /admin/users/:id/status`, `GET /admin/audit`, `GET /admin/exports/registrations.csv`                                                                                                                                            |
+| Dev (demo only)    | `GET /dev/mailbox?to=` — registered only when `DEMO_MODE=true` and `APP_ENV=development`                                                                                                                                                                                                                                                               |
+
+## Scan result contract
+
+`POST /scanner/scan` body: `{ token | accreditationId, gateId, deviceId, direction?, identityConfirmed? }`.
+Response `result` is one of `VALID_ADMIT, VALID_EXIT, ALREADY_CHECKED_IN, INVALID_CREDENTIAL,
+PAYMENT_OR_ELIGIBILITY_ISSUE, REVOKED_CREDENTIAL, EXPIRED_CREDENTIAL, MANUAL_REVIEW_REQUIRED`.
+`TEMPORARY_SYSTEM_FAILURE` is produced by the scanner client when the server cannot decide.

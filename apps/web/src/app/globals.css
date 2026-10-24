@@ -1,0 +1,90 @@
+@import "tailwindcss";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+@import "@fontsource/barlow-condensed/500.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+@import "@fontsource/barlow-condensed/800.css";
+
+@theme {
+  --color-ink: #000000;
+  --color-paper: #ffffff;
+  --color-crimson: #c30a2b;
+  --color-crimson-deep: #8f0620;
+  --color-fog: #eef0f2;
+  --color-line: #d5d9de;
+  --color-slate: #4a4f57;
+  --color-admit: #0b7a3e;
+  --color-warn: #9a5b00;
+
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 14px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-crimson);
+  outline-offset: 2px;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+}
+
+.measure {
+  max-width: 68ch;
+}
+
+/* Lanyard band texture on the accreditation pass */
+.lanyard {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-crimson) 0 14px,
+    var(--color-crimson-deep) 14px 16px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .print-badge {
+    width: 86mm;
+    margin: 0 auto;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}

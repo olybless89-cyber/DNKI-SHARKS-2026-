@@ -228,8 +228,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       requirePermission(req, "audit.read");
       const params: unknown[] = [];
       const where: string[] = [];
-      if (req.query.action) {
-        params.push(likePrefix(req.query.action));
+      const action = req.query.action ?? req.query.q;
+      if (action) {
+        params.push(likePrefix(action));
         where.push(`a.action like $${params.length}`);
       }
       if (req.query.entityId) {
